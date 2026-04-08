@@ -1,0 +1,13 @@
+MentalHealthApp/
+    App.tsx
+    backend/
+        models.py
+    src/
+        navigation/
+            AppNavigator.tsx
+        screens/
+            AssessmentScreen.tsx
+        store/
+            assessmentSlice.ts
+            authSlice.ts
+            index.ts
