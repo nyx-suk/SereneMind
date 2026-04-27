@@ -1,5 +1,4 @@
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Float
-from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import declarative_base, relationship
 from datetime import datetime, timezone
 
@@ -35,9 +34,6 @@ class Assessment(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
-    
-    # Raw 1-5 answers for future ML or re-scoring natively stored
-    responses = Column(JSONB, nullable=False)
     
     # Scores (1-5 scale)
     anxiety_score = Column(Float, nullable=False)

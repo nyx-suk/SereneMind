@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { answerQuestion, setLatestScore } from '../store/assessmentSlice';
 import apiClient from '../api/client';
 import { RootState } from '../store';
+import { computeScores } from '../services/scoring';
 
 export default function AssessmentScreen({ navigation }: any) {
   const dispatch = useDispatch();
@@ -57,10 +58,14 @@ export default function AssessmentScreen({ navigation }: any) {
     try {
       // Need to include the last answer eagerly since Redux state might not have flushed in time
       const finalAnswers = { ...currentAnswers, [lastQuestionId]: lastScore };
-      const response = await apiClient.post('/assessments', { responses: finalAnswers });
+      const scores = computeScores(finalAnswers, questions);
+      const response = await apiClient.post('/assessments', {
+        anxiety_score: scores.anxiety,
+        depression_score: scores.depression,
+        stress_score: scores.stress
+      });
       
-      // Assume backend returns: { id: ..., scores: { anxiety: x, depression: y, stress: z } }
-      dispatch(setLatestScore(response.data.scores));
+      dispatch(setLatestScore(scores));
       navigation.replace('Results'); // Use replace to prevent going back to assessment
     } catch (error) {
       Alert.alert('Error', 'Failed to submit assessment results.');

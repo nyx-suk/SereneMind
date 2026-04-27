@@ -6,18 +6,13 @@ from .models import Base, User, Assessment
 from passlib.context import CryptContext
 from pydantic import BaseModel
 from typing import Dict, List, Any
-from jose import jwt, JWTError
+from jwt import PyJWTError as JWTError
 from datetime import datetime, timedelta, timezone
 import os
 
 # Database config
-POSTGRES_USER = os.environ.get("POSTGRES_USER", "postgres")
-POSTGRES_PASSWORD = os.environ.get("POSTGRES_PASSWORD", "postgres")
-POSTGRES_HOST = os.environ.get("POSTGRES_HOST", "localhost")
-POSTGRES_DB = os.environ.get("POSTGRES_DB", "mentalhealth")
-
-SQL_URL = f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:5432/{POSTGRES_DB}"
-engine = create_engine(SQL_URL)
+SQL_URL = "sqlite:///./mentalhealth.db"
+engine = create_engine(SQL_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 app = FastAPI(title="Mental Health App API")
@@ -63,7 +58,9 @@ class TokenSchema(BaseModel):
     userId: int
 
 class AssessmentSubmitSchema(BaseModel):
-    responses: Dict[str, int]
+    anxiety_score: float
+    depression_score: float
+    stress_score: float
 
 # Auth Endpoints
 @app.post("/auth/register", response_model=TokenSchema)
@@ -100,7 +97,12 @@ MOCK_QUESTIONS = [
   { "id": "q7", "text": "How often have you felt afraid as if something awful might happen?", "category": "anxiety" },
   { "id": "q8", "text": "How often have you felt bad about yourself?", "category": "depression" },
   { "id": "q9", "text": "How often have you felt that you were using a lot of nervous energy?", "category": "stress" },
-  { "id": "q10", "text": "How often have you had trouble falling asleep?", "category": "depression" }
+  { "id": "q10", "text": "How often have you had trouble falling asleep?", "category": "depression" },
+  { "id": "q11", "text": "How often have you felt worried about the future?", "category": "anxiety" },
+  { "id": "q12", "text": "How often have you felt worthless?", "category": "depression" },
+  { "id": "q13", "text": "How often have you felt overwhelmed by your responsibilities?", "category": "stress" },
+  { "id": "q14", "text": "How often have you experienced sudden panic?", "category": "anxiety" },
+  { "id": "q15", "text": "How often have you felt like giving up?", "category": "depression" }
 ]
 
 @app.get("/assessments/questions")
@@ -109,44 +111,18 @@ def get_questions():
 
 @app.post("/assessments")
 def submit_assessment(data: AssessmentSubmitSchema, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    responses = data.responses
-    
-    # Calculate scores on backend
-    anxiety = 0.0
-    depression = 0.0
-    stress = 0.0
-    
-    anxiety_count = 0
-    depression_count = 0
-    stress_count = 0
-    
-    for q in MOCK_QUESTIONS:
-        if q["id"] in responses:
-            score = float(responses[q["id"]])
-            if q["category"] == "anxiety":
-                anxiety += score
-                anxiety_count += 1
-            elif q["category"] == "depression":
-                depression += score
-                depression_count += 1
-            elif q["category"] == "stress":
-                stress += score
-                stress_count += 1
-                
-    # Averages or sums could be used; sticking to sums per common scales (e.g. DASS-21)
-    # We will use sum for now.
-    
     new_assessment = Assessment(
         user_id=current_user.id,
-        responses=responses,
-        anxiety_score=anxiety,
-        depression_score=depression,
-        stress_score=stress
+        anxiety_score=data.anxiety_score,
+        depression_score=data.depression_score,
+        stress_score=data.stress_score
     )
     
     db.add(new_assessment)
     db.commit()
     db.refresh(new_assessment)
+    
+    return {"message": "Assessment submitted successfully", "assessment_id": new_assessment.id}
     
     return {
         "id": new_assessment.id,
