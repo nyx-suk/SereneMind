@@ -1,11 +1,12 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { Answer } from '../services/scoring';
 
 interface AssessmentState {
   currentAnswers: Record<string, number>;
   latestScore: {
     anxiety: number;
     depression: number;
-    stress: number;
+    answers: Answer[];
   } | null;
 }
 
@@ -29,7 +30,7 @@ export const assessmentSlice = createSlice({
     },
     setLatestScore: (
       state,
-      action: PayloadAction<{ anxiety: number; depression: number; stress: number }>
+      action: PayloadAction<{ anxiety: number; depression: number; answers: Answer[] }>
     ) => {
       state.latestScore = action.payload;
     },

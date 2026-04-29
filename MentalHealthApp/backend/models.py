@@ -35,10 +35,9 @@ class Assessment(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
     
-    # Scores (1-5 scale)
+    # Scores (0-27 scale for PHQ-9 and GAD-7)
     anxiety_score = Column(Float, nullable=False)
     depression_score = Column(Float, nullable=False)
-    stress_score = Column(Float, nullable=False)
     
     taken_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
@@ -46,13 +45,17 @@ class Assessment(Base):
 
 class Progress(Base):
     """
-    Optional aggregated summary tables for dashboard queries.
-    Allows easy tracking without querying and summing thousands of assessments on the fly.
+    Mood tracking and progress records for dashboard queries.
+    Allows easy tracking of daily mood and optional notes.
     """
     __tablename__ = 'progress'
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    
+    # Mood tracking (1-10 scale)
+    mood_score = Column(Integer, nullable=False)  # 1-10 scale
+    note = Column(String, nullable=True)  # Optional user note
     
     # Summary or latest metrics over a specific period 
     avg_anxiety = Column(Float, nullable=True)

@@ -1,64 +1,91 @@
 export interface Scores {
   anxiety: number;
   depression: number;
-  stress: number;
 }
 
 export interface Question {
   id: string;
   text: string;
-  category: 'anxiety' | 'depression' | 'stress';
+  category: 'anxiety' | 'depression';
+  options: { label: string; value: number }[];
 }
 
-// Arbitrary thresholds denoting "High-Risk" category levels (based loosely on DASS-21 Severe scale)
-const HIGH_RISK_THRESHOLDS = {
-  anxiety: 14,
-  depression: 13,
-  stress: 16
-};
+export interface Answer {
+  questionId: string;
+  value: number;
+}
 
 /**
  * Computes the scores from raw answers.
  */
-export const computeScores = (answers: Record<string, number>, questions: Question[]): Scores => {
-  const scores: Scores = { anxiety: 0, depression: 0, stress: 0 };
-  const counts: Scores = { anxiety: 0, depression: 0, stress: 0 };
+export const computeScores = (answers: Answer[], questions: Question[]): Scores => {
+  const scores: Scores = { anxiety: 0, depression: 0 };
+  const answersMap = answers.reduce((acc, ans) => {
+    acc[ans.questionId] = ans.value;
+    return acc;
+  }, {} as Record<string, number>);
 
   questions.forEach(q => {
-    if (answers[q.id] !== undefined) {
-      scores[q.category] += answers[q.id];
-      counts[q.category] += 1;
+    if (answersMap[q.id] !== undefined) {
+      scores[q.category] += answersMap[q.id];
     }
   });
 
-  // Assuming we use sums, as per backend
   return scores;
 };
 
 /**
- * Evaluates the scores returned by the backend to determine if the user hits ANY 
- * high-risk threshold across the 3 categories.
+ * Returns the severity label based on score and category.
  */
-export const checkHighRisk = (scores: Scores): boolean => {
-  if (
-    scores.anxiety > HIGH_RISK_THRESHOLDS.anxiety ||
-    scores.depression > HIGH_RISK_THRESHOLDS.depression ||
-    scores.stress > HIGH_RISK_THRESHOLDS.stress
-  ) {
-    return true; // Any individual category hitting the threshold triggers High-Risk
+export const getSeverityLabel = (score: number, category: "depression" | "anxiety"): string => {
+  if (category === "depression") {
+    if (score <= 4) return "Minimal";
+    if (score <= 9) return "Mild";
+    if (score <= 14) return "Moderate";
+    if (score <= 19) return "Moderately Severe";
+    return "Severe";
+  } else { // anxiety
+    if (score <= 4) return "Minimal";
+    if (score <= 9) return "Mild";
+    if (score <= 14) return "Moderate";
+    return "Severe";
   }
-  
+};
+
+/**
+ * Checks if the scores indicate high risk.
+ * Triggers if: PHQ-9 depression score >= 20 OR answer to PHQ-9 question 9 >= 1.
+ */
+export const checkHighRisk = (scores: Scores, answers: Answer[]): boolean => {
+  // Condition 1: PHQ-9 total >= 20
+  if (scores.depression >= 20) {
+    return true;
+  }
+  // Condition 2: Suicidal ideation (PHQ-9 question 9) >= 1
+  const suicidalAnswer = answers.find(ans => ans.questionId === 'phq9');
+  if (suicidalAnswer && suicidalAnswer.value >= 1) {
+    return true;
+  }
   return false;
 };
 
 /**
- * Returns a personalized categorization message string for the specific category.
+ * Returns a short personalized recommendation string based on severity.
  */
-export const getCategoryMessage = (category: keyof Scores, score: number): string => {
-  if (score > HIGH_RISK_THRESHOLDS[category]) {
-    return "Severe: High intervention recommended.";
-  } else if (score > HIGH_RISK_THRESHOLDS[category] / 2) {
-    return "Moderate: Recommend continuing monitoring and self-care routines.";
+export const getCategoryMessage = (score: number, category: "depression" | "anxiety"): string => {
+  const severity = getSeverityLabel(score, category);
+  switch (severity) {
+    case "Minimal":
+      return "You're doing well! Keep maintaining your positive habits.";
+    case "Mild":
+      return "Consider light self-care activities like exercise or journaling.";
+    case "Moderate":
+      return "Seek support from friends, family, or a professional counselor.";
+    case "Moderately Severe":
+      return "Professional help is recommended. Consider therapy or medication.";
+    case "Severe":
+      return "Immediate professional intervention is crucial. Contact a mental health specialist.";
+    default:
+      return "Monitor your mental health and seek help if needed.";
   }
-  return "Mild: Healthy range. Keep up your positive habits.";
 };

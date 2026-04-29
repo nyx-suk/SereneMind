@@ -5,6 +5,8 @@ import { useSelector } from 'react-redux';
 import { View, Text, StyleSheet } from 'react-native';
 import { RootState } from '../store';
 import AssessmentScreen from '../screens/AssessmentScreen';
+import HistoryScreen from '../screens/HistoryScreen';
+import MoodScreen from '../screens/MoodScreen';
 import ResultsScreen from '../screens/ResultsScreen';
 
 const Stack = createStackNavigator();
@@ -40,6 +42,8 @@ export default function AppNavigator() {
           <>
             <Stack.Screen name="Dashboard" component={DashboardScreen} />
             <Stack.Screen name="Assessment" component={AssessmentScreen} />
+            <Stack.Screen name="History" component={HistoryScreen} />
+            <Stack.Screen name="Mood" component={MoodScreen} />
             <Stack.Screen name="Results" component={ResultsScreen} />
             <Stack.Screen name="Crisis Support" component={CrisisScreen} />
           </>
